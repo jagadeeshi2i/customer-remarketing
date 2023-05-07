@@ -7,17 +7,17 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
-import category_encoders as ce
 from src.exception import CustomException
 from src.logger import logging
 import os
 
+from src.utils import save_object
 
 class DataTransformation:
     def __init__(self, input_folder, output_folder):
         self.input_folder = input_folder
         self.output_folder = output_folder
-        self.preprocessor_obj_file_path = os.path.join(self.output_folder, "proprocessor.pkl")
+        self.preprocessor_obj_file_path = os.path.join(self.output_folder, "preprocessor.pkl")
 
     def get_data_transformer_object(self):
         """
@@ -289,21 +289,21 @@ class DataTransformation:
 
             train_arr = np.c_[train_arr]
             test_arr = np.c_[test_arr]
+
+            logging.info(f"Saved test and train numpy arrays.")
+
+            np.save(os.path.join(self.output_folder, "train.npy"), train_arr)
+            np.save(os.path.join(self.output_folder, "test.npy"),test_arr)
+
             logging.info(f"Saved preprocessing object.")
 
-            # save_object(
+            save_object(
 
-            #     file_path=self.data_transformation_config.preprocessor_obj_file_path,
-            #     obj=preprocessing_obj
+                file_path=self.preprocessor_obj_file_path,
+                obj=preprocessing_obj
 
-            # )
-
-            return (
-                train_arr,
-                test_arr,
-                # self.data_transformation_config.preprocessor_obj_file_path,
-                5,
             )
+
         except Exception as e:
             raise CustomException(e, sys)
 
@@ -313,5 +313,5 @@ if __name__ == '__main__':
     parser.add_argument("output_folder", type=str)
 
     args = parser.parse_args()
-    data_transformation = DataTransformation()
-    train_arr, test_arr, _ = data_transformation.initiate_data_transformation()
+    data_transformation = DataTransformation(args.input_folder, args.output_folder)
+    data_transformation.initiate_data_transformation()

@@ -11,9 +11,9 @@ from kfp.gcp import use_gcp_secret
 INGRESS_GATEWAY = "http://istio-ingressgateway.istio-system.svc.cluster.local"
 
 download_op = load_component_from_url("https://raw.githubusercontent.com/kubeflow/pipelines/74c7773ca40decfd0d4ed40dc93a6af591bbc190/components/contrib/google-cloud/storage/download_blob/component.yaml")
-ingestion_op = load_component_from_file("components/data_ingestion.yaml")  # pylint: disable=not-callable
-prep_op = load_component_from_file("components/processing.yaml")  # pylint: disable=not-callable
-
+ingestion_op = load_component_from_file("components/data_ingestion_component.yml")  # pylint: disable=not-callable
+prep_op = load_component_from_file("components/pre_processing_component.yml")  # pylint: disable=not-callable
+train_op = load_component_from_file("components/train_component.yml")
 
 @dsl.pipeline(
     name="Training pipeline", description=""
@@ -39,6 +39,16 @@ def customer_remarketing():
         ).after(ingestion_task).set_display_name("Data Preparation")
     )
 
+    train_task = (
+        train_op(
+            input_data=prep_task.outputs["output_data"],
+        ).after(prep_task).set_display_name("Training")
+    )
+
+    # TODO: Use Seldon for deploying mode
+
+    deploy_task = (
+    )
 
 if __name__ == "__main__":
     compiler.Compiler().compile(

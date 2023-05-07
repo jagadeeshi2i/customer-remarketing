@@ -1,5 +1,6 @@
 import os
 import sys
+import argparse
 from dataclasses import dataclass
 
 from sklearn.model_selection import (
@@ -15,6 +16,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import SGDClassifier
 from xgboost import XGBClassifier
+import numpy as np
 
 from sklearn.neural_network import MLPClassifier
 from keras.models import Sequential
@@ -34,23 +36,23 @@ from src.logger import logging
 from src.utils import save_object, evaluate_models
 
 
-@dataclass
-class ModelTrainerConfig:
-    trained_model_file_path = os.path.join("artifacts", "model.pkl")
-
-
 class ModelTrainer:
-    def __init__(self):
-        self.model_trainer_config = ModelTrainerConfig()
-
-    def initiate_model_trainer(self, train_array, test_array):
+    def __init__(self, input_folder,  output_folder):
+        self.input_folder = input_folder
+        self.output_folder = output_folder
+        self.trained_model_file_path = os.path.join(self.output_folder, "model.pkl")
+        
+        self.train_array = np.load(os.path.join(self.input_folder, "train.npy"))
+        self.test_array = np.load(os.path.join(self.input_folder, "test.npy"))
+        
+    def initiate_model_trainer(self):
         try:
             logging.info("Split training and test input data")
             X_train, y_train, X_test, y_test = (
-                train_array[:, :-1],
-                train_array[:, -1],
-                test_array[:, :-1],
-                test_array[:, -1],
+                self.train_array[:, :-1],
+                self.train_array[:, -1],
+                self.test_array[:, :-1],
+                self.test_array[:, -1],
             )
 
             def create_nn(
@@ -145,7 +147,7 @@ class ModelTrainer:
             logging.info(f"Found model on both training and testing dataset")
 
             save_object(
-                file_path=self.model_trainer_config.trained_model_file_path,
+                file_path=self.trained_model_file_path,
                 obj=best_model,
             )
 
@@ -157,7 +159,14 @@ class ModelTrainer:
                 )
             )
 
-            return auc, best_model_name
-
         except Exception as e:
             raise CustomException(e, sys)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_folder", type=str)
+    parser.add_argument("output_folder", type=str)
+
+    args = parser.parse_args()
+    modeltrainer = ModelTrainer(args.input_folder, args.output_folder)
+    modeltrainer.initiate_model_trainer()

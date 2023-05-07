@@ -1,1 +1,18 @@
 # train component
+name: Training
+description: |
+  Training
+inputs:
+- {name: input_data, description: 'Input path'}
+
+outputs:
+- {name: output_data, description: "output path"}
+implementation:
+  container:
+    image: jagadeeshj/customer-remarketing:latest
+    command: ['python3', 'src/train/trainer.py']
+    args:
+      - --input_folder
+      - {inputPath: input_data}
+      - --output_folder
+      - {outputPath: output_data}
