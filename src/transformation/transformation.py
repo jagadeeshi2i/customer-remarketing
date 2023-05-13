@@ -1,8 +1,10 @@
 import sys
 import argparse
 
+from pathlib import Path
 import numpy as np
 import pandas as pd
+from category_encoders.target_encoder import TargetEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
@@ -17,6 +19,7 @@ class DataTransformation:
     def __init__(self, input_folder, output_folder):
         self.input_folder = input_folder
         self.output_folder = output_folder
+        Path(str(self.output_folder)).mkdir(parents=True, exist_ok=True)
         self.preprocessor_obj_file_path = os.path.join(self.output_folder, "preprocessor.pkl")
 
     def get_data_transformer_object(self):
@@ -51,7 +54,7 @@ class DataTransformation:
             ]
 
             target_columns = ["marital", "education"]
-            target_encode = ce.target_encoder.TargetEncoder(
+            target_encode = TargetEncoder(
                 cols=target_columns,
                 drop_invariant=True,
                 return_df=False,
@@ -102,7 +105,7 @@ class DataTransformation:
             def target_encoding_wrapper(X):
                 target_columns = ["marital", "education"]
                 # print(X)
-                target_encode = ce.target_encoder.TargetEncoder(
+                target_encode = TargetEncoder(
                     cols=target_columns,
                     drop_invariant=True,
                     return_df=False,
@@ -309,8 +312,8 @@ class DataTransformation:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_folder", type=str)
-    parser.add_argument("output_folder", type=str)
+    parser.add_argument("--input_folder", type=str)
+    parser.add_argument("--output_folder", type=str)
 
     args = parser.parse_args()
     data_transformation = DataTransformation(args.input_folder, args.output_folder)

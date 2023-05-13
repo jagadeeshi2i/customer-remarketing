@@ -9,7 +9,7 @@ outputs:
 - {name: output_data, description: "output path"}
 implementation:
   container:
-    image: jagadeeshj/customer-remarketing:latest
+    image: jagadeeshj/customer-remarketing:v3
     command: ['python3', 'src/train/trainer.py']
     args:
       - --input_folder

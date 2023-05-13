@@ -8,8 +8,8 @@ outputs:
   - {name: output_data, description: "output path"}
 implementation:
   container:
-    image: jagadeeshj/customer-remarketing:latest
-    command: ['python3', 'src/ingestion/injestion.py']
+    image: jagadeeshj/customer-remarketing:v3
+    command: ['python3', 'src/ingestion/ingestion.py']
     args:
       - --input_folder
       - {inputPath: input_data}

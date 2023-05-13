@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 from dataclasses import dataclass
+from pathlib import Path
 
 from sklearn.model_selection import (
     train_test_split,
@@ -40,7 +41,9 @@ class ModelTrainer:
     def __init__(self, input_folder,  output_folder):
         self.input_folder = input_folder
         self.output_folder = output_folder
-        self.trained_model_file_path = os.path.join(self.output_folder, "model.pkl")
+        Path(str(self.output_folder)).mkdir(parents=True, exist_ok=True)
+
+        self.trained_model_file_path = os.path.join(self.output_folder, "model.bst")
         
         self.train_array = np.load(os.path.join(self.input_folder, "train.npy"))
         self.test_array = np.load(os.path.join(self.input_folder, "test.npy"))
@@ -146,10 +149,12 @@ class ModelTrainer:
                 raise CustomException("No best model found")
             logging.info(f"Found model on both training and testing dataset")
 
-            save_object(
-                file_path=self.trained_model_file_path,
-                obj=best_model,
-            )
+            # save_object(
+            #     file_path=self.trained_model_file_path,
+            #     obj=best_model,
+            # )
+
+            best_model.save_model(self.trained_model_file_path)
 
             predicted = best_model.predict_proba(X_test)
             auc = roc_auc_score(y_test, predicted[:, 1])
@@ -164,8 +169,8 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_folder", type=str)
-    parser.add_argument("output_folder", type=str)
+    parser.add_argument("--input_folder", type=str)
+    parser.add_argument("--output_folder", type=str)
 
     args = parser.parse_args()
     modeltrainer = ModelTrainer(args.input_folder, args.output_folder)

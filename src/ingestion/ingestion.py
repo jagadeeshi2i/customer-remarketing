@@ -1,6 +1,9 @@
 import os
 import sys
 import argparse
+
+from pathlib import Path
+
 from src.exception import CustomException
 from src.logger import logging
 import pandas as pd
@@ -18,6 +21,7 @@ class DataIngestion:
     def __init__(self,input_folder, output_folder):
         self.input_folder = input_folder
         self.output_folder = output_folder
+        Path(str(self.output_folder)).mkdir(parents=True, exist_ok=True)
         self.train_data_path =  os.path.join(self.output_folder, "train.csv")
         self.test_data_path =  os.path.join(self.output_folder, "test.csv")
         self.raw_data_path =  os.path.join(self.output_folder, "data.csv")
@@ -52,8 +56,8 @@ class DataIngestion:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_folder", type=str)
-    parser.add_argument("output_folder", type=str)
+    parser.add_argument("--input_folder", type=str)
+    parser.add_argument("--output_folder", type=str)
 
     args = parser.parse_args()
     obj = DataIngestion(args.input_folder, args.output_folder)

@@ -2,15 +2,15 @@
 
 """Pipeline customer-remarketing."""
 
-from kfp.components import load_component_from_file, load_component_from_url
+from kfp.components import load_component_from_file
 from kfp import dsl
 from kfp import compiler
 from kfp.gcp import use_gcp_secret
+import json
+from string import Template
 
-
-INGRESS_GATEWAY = "http://istio-ingressgateway.istio-system.svc.cluster.local"
-
-download_op = load_component_from_url("https://raw.githubusercontent.com/kubeflow/pipelines/74c7773ca40decfd0d4ed40dc93a6af591bbc190/components/contrib/google-cloud/storage/download_blob/component.yaml")
+download_op = load_component_from_file("components/download_component.yml")
+upload_op = load_component_from_file("components/upload_component.yml")
 ingestion_op = load_component_from_file("components/data_ingestion_component.yml")  # pylint: disable=not-callable
 prep_op = load_component_from_file("components/pre_processing_component.yml")  # pylint: disable=not-callable
 train_op = load_component_from_file("components/train_component.yml")
@@ -18,12 +18,12 @@ train_op = load_component_from_file("components/train_component.yml")
 @dsl.pipeline(
     name="Training pipeline", description=""
 )
-def customer_remarketing():
+def customer_remarketing(deploy="xgboost", namespace="kubeflow-user-example-com", model_uri="gs://churn_data_382919/model.bst"):
     """Thid method defines the pipeline tasks and operations"""
 
     download_data = (
         download_op(
-            gcs_path='gs://my-bucket/path/model'
+            gcs_path='gs://churn_weekly_input_data_382919',
        ).set_display_name("Download data from GCS") 
     ).apply(use_gcp_secret('user-gcp-sa'))
 
@@ -31,7 +31,7 @@ def customer_remarketing():
         ingestion_op(
             input_data=download_data.outputs["Data"],
         ).set_display_name("Data Ingestion and Split")
-    ).apply(use_gcp_secret('user-gcp-sa'))
+    )
 
     prep_task = (
         prep_op(
@@ -45,10 +45,47 @@ def customer_remarketing():
         ).after(prep_task).set_display_name("Training")
     )
 
-    # TODO: Use Seldon for deploying mode
+    upload_model = (
+        upload_op(
+            data=train_task.outputs["output_data"],
+            gcs_path='gs://churn_data_382919'
+        ).after(train_task).set_display_name("Upload model to GCS")
+    ).apply(use_gcp_secret('user-gcp-sa'))
 
-    deploy_task = (
-    )
+    seldon_serving_json_template = Template("""
+    {
+        apiVersion: 'machinelearning.seldon.io/v1alpha2',
+        kind: 'SeldonDeployment',
+        metadata: {
+            name: '$deploy',
+            namespace: '$namespace',
+        },
+        spec: {
+            name: 'customer-remarketing',
+            predictors: [
+                {
+                graph: {
+                    children: [],
+                    implementation: 'XGBOOST_SERVER',
+                    modelUri: '$model_uri',
+                    name: 'classifier'
+                },
+                name: 'default',
+                replicas: 1
+                }
+            ]
+        }
+    }   
+    """)
+
+    seldon_serving_json = seldon_serving_json_template.substitute({ 'deployment_name': str(deploy),'namespace': str(namespace),'model_uri': str(model_uri)})
+    seldon_deployment = json.loads(seldon_serving_json)
+    serve = dsl.ResourceOp(
+        name='serve',
+        k8s_resource=seldon_deployment,
+        success_condition='status.state == Available'
+    ).after(upload_model)
+
 
 if __name__ == "__main__":
     compiler.Compiler().compile(
