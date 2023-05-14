@@ -14,11 +14,12 @@ upload_op = load_component_from_file("components/upload_component.yml")
 ingestion_op = load_component_from_file("components/data_ingestion_component.yml")  # pylint: disable=not-callable
 prep_op = load_component_from_file("components/pre_processing_component.yml")  # pylint: disable=not-callable
 train_op = load_component_from_file("components/train_component.yml")
+deploy_op = load_component_from_file("components/k8s_apply_component.yml")
 
 @dsl.pipeline(
     name="Training pipeline", description=""
 )
-def customer_remarketing(deploy="xgboost", namespace="kubeflow-user-example-com", model_uri="gs://churn_data_382919/model.bst"):
+def customer_remarketing(deploy="sklearn-deployment", namespace="kubeflow-user-example-com", model_uri="gs://churn_data_382919/model/data"):
     """Thid method defines the pipeline tasks and operations"""
 
     download_data = (
@@ -48,44 +49,44 @@ def customer_remarketing(deploy="xgboost", namespace="kubeflow-user-example-com"
     upload_model = (
         upload_op(
             data=train_task.outputs["output_data"],
-            gcs_path='gs://churn_data_382919'
+            gcs_path='gs://churn_data_382919/model'
         ).after(train_task).set_display_name("Upload model to GCS")
     ).apply(use_gcp_secret('user-gcp-sa'))
 
     seldon_serving_json_template = Template("""
     {
-        apiVersion: 'machinelearning.seldon.io/v1alpha2',
-        kind: 'SeldonDeployment',
-        metadata: {
-            name: '$deploy',
-            namespace: '$namespace',
+        "apiVersion": "machinelearning.seldon.io/v1alpha2",
+        "kind": "SeldonDeployment",
+        "metadata": {
+            "name": "$deployment_name"
         },
-        spec: {
-            name: 'customer-remarketing',
-            predictors: [
+        "spec": {
+            "name": "iris",
+            "predictors": [
                 {
-                graph: {
-                    children: [],
-                    implementation: 'XGBOOST_SERVER',
-                    modelUri: '$model_uri',
-                    name: 'classifier'
-                },
-                name: 'default',
-                replicas: 1
+                    "graph": {
+                        "children": [],
+                        "implementation": "SKLEARN_SERVER",
+                        "modelUri": "$model_uri",
+                        "name": "classifier",
+                        "envSecretRefName": "seldon-rclone-secret"
+                    },
+                    "name": "default",
+                    "replicas": 1
                 }
             ]
         }
-    }   
+    }
     """)
 
     seldon_serving_json = seldon_serving_json_template.substitute({ 'deployment_name': str(deploy),'namespace': str(namespace),'model_uri': str(model_uri)})
-    seldon_deployment = json.loads(seldon_serving_json)
-    serve = dsl.ResourceOp(
-        name='serve',
-        k8s_resource=seldon_deployment,
-        success_condition='status.state == Available'
-    ).after(upload_model)
 
+    deploy_task = (
+        deploy_op(
+            object=seldon_serving_json,
+            namespace=namespace,
+        ).after(upload_model).set_display_name("Deploy model with Seldon")
+    )
 
 if __name__ == "__main__":
     compiler.Compiler().compile(

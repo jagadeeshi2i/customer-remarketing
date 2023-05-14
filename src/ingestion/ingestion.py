@@ -22,30 +22,30 @@ class DataIngestion:
         self.input_folder = input_folder
         self.output_folder = output_folder
         Path(str(self.output_folder)).mkdir(parents=True, exist_ok=True)
-        self.train_data_path =  os.path.join(self.output_folder, "train.csv")
-        self.test_data_path =  os.path.join(self.output_folder, "test.csv")
-        self.raw_data_path =  os.path.join(self.output_folder, "data.csv")
+        self.train_data_path =  os.path.join(self.output_folder, "train.xlsx")
+        self.test_data_path =  os.path.join(self.output_folder, "test.xlsx")
+        self.raw_data_path =  os.path.join(self.output_folder, "data.xlsx")
 
     def initiate_data_ingestion(self):
         logging.info("Entered the data ingestion method or component")
         try:
-            data = os.path.join(self.input_folder, "data.csv")
-            df = pd.read_csv(data, sep=";")
+            data = os.path.join(self.input_folder, "data.xlsx")
+            df = pd.read_excel(data)
             logging.info("Read the dataset as dataframe")
 
 
-            df.to_csv(self.raw_data_path,index=False,header=True)
+            df.to_excel(self.raw_data_path,index=False,header=True)
 
             logging.info("Train test split initiated")
             train_set, test_set = train_test_split(
                 df, test_size=0.2, random_state=42
             )
 
-            train_set.to_csv(
+            train_set.to_excel(
                 self.train_data_path, index=False, header=True
             )
 
-            test_set.to_csv(
+            test_set.to_excel(
                 self.test_data_path, index=False, header=True
             )
 

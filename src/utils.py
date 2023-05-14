@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import dill
 import pickle
+import joblib
 
 from src.exception import CustomException
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
@@ -24,6 +25,14 @@ def save_object(file_path, obj):
 
         with open(file_path, "wb") as file_obj:
             pickle.dump(obj, file_obj)
+        
+        foo = file_path.split('.')
+        foo[-1] = 'joblib'
+        joblib_file_path = '.'.join(foo)
+        
+        with open(joblib_file_path, "wb") as file_obj:
+            joblib.dump(obj, file_obj)
+        
 
     except Exception as e:
         raise CustomException(e, sys)

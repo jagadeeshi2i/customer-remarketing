@@ -260,8 +260,8 @@ class DataTransformation:
 
     def initiate_data_transformation(self):
         try:
-            train_df = pd.read_csv(os.path.join(self.input_folder, "train.csv"))
-            test_df = pd.read_csv(os.path.join(self.input_folder, "train.csv"))
+            train_df = pd.read_excel(os.path.join(self.input_folder, "train.xlsx"))
+            test_df = pd.read_excel(os.path.join(self.input_folder, "train.xlsx"))
 
             logging.info("Read train and test data completed")
 
@@ -298,14 +298,14 @@ class DataTransformation:
             np.save(os.path.join(self.output_folder, "train.npy"), train_arr)
             np.save(os.path.join(self.output_folder, "test.npy"),test_arr)
 
-            logging.info(f"Saved preprocessing object.")
+            # logging.info(f"Saved preprocessing object.")
 
-            save_object(
+            # save_object(
 
-                file_path=self.preprocessor_obj_file_path,
-                obj=preprocessing_obj
+            #     file_path=self.preprocessor_obj_file_path,
+            #     obj=preprocessing_obj
 
-            )
+            # )
 
         except Exception as e:
             raise CustomException(e, sys)

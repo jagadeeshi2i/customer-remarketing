@@ -43,7 +43,7 @@ class ModelTrainer:
         self.output_folder = output_folder
         Path(str(self.output_folder)).mkdir(parents=True, exist_ok=True)
 
-        self.trained_model_file_path = os.path.join(self.output_folder, "model.bst")
+        self.trained_model_file_path = os.path.join(self.output_folder, "model.pkl")
         
         self.train_array = np.load(os.path.join(self.input_folder, "train.npy"))
         self.test_array = np.load(os.path.join(self.input_folder, "test.npy"))
@@ -149,12 +149,10 @@ class ModelTrainer:
                 raise CustomException("No best model found")
             logging.info(f"Found model on both training and testing dataset")
 
-            # save_object(
-            #     file_path=self.trained_model_file_path,
-            #     obj=best_model,
-            # )
-
-            best_model.save_model(self.trained_model_file_path)
+            save_object(
+                file_path=self.trained_model_file_path,
+                obj=best_model,
+            )
 
             predicted = best_model.predict_proba(X_test)
             auc = roc_auc_score(y_test, predicted[:, 1])
