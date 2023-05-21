@@ -7,7 +7,9 @@ catboost
 matplotlib
 category_encoders
 dill
+pyyaml
 keras
+seldon-core
 tensorflow
 openpyxl
 

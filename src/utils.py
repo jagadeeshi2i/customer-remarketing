@@ -4,6 +4,8 @@ import sys
 import numpy as np
 import pandas as pd
 import dill
+import yaml
+
 import pickle
 import joblib
 
@@ -26,6 +28,7 @@ def save_object(file_path, obj):
         with open(file_path, "wb") as file_obj:
             pickle.dump(obj, file_obj)
         
+        # Save the model as joblib file
         foo = file_path.split('.')
         foo[-1] = 'joblib'
         joblib_file_path = '.'.join(foo)
@@ -33,6 +36,32 @@ def save_object(file_path, obj):
         with open(joblib_file_path, "wb") as file_obj:
             joblib.dump(obj, file_obj)
         
+        bar = file_path.split('/')
+        bar[-1] = 'metadata.yaml'
+        metadata_file_path = '/'.join(bar)
+
+        metadata = {
+                        "name": "custome",
+                        "versions": ["iris/v1"],
+                        "platform": "sklearn",
+                        "inputs": [
+                            {
+                                "datatype": "BYTES",
+                                "name": "input",
+                                "shape": [4]
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "datatype": "BYTES",
+                                "name": "output",
+                                "shape": [3]
+                            }
+                        ]
+                    }
+
+        with open(metadata_file_path, "wb") as file_obj:
+            yaml.dump(metadata, file_obj)
 
     except Exception as e:
         raise CustomException(e, sys)

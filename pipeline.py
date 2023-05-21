@@ -2,7 +2,7 @@
 
 """Pipeline customer-remarketing."""
 
-from kfp.components import load_component_from_file
+from kfp.components import load_component_from_file, create_component_from_func
 from kfp import dsl
 from kfp import compiler
 from kfp.gcp import use_gcp_secret
@@ -15,6 +15,35 @@ ingestion_op = load_component_from_file("components/data_ingestion_component.yml
 prep_op = load_component_from_file("components/pre_processing_component.yml")  # pylint: disable=not-callable
 train_op = load_component_from_file("components/train_component.yml")
 deploy_op = load_component_from_file("components/k8s_apply_component.yml")
+
+def serve():
+    '''Inference'''
+    import requests
+
+    headers = {
+        'Content-Type': 'application/json',
+    }
+
+    # Sample JSON data
+    json_data = {
+        'data': {
+            'ndarray': [
+                [
+                    1.0,
+                    2.0,
+                    5.0,
+                    6.0,
+                ],
+            ],
+        },
+    }
+
+    response = requests.post('http://localhost:8004/seldon/seldon/sklearn/api/v1.0/predictions', headers=headers, json=json_data)
+    data=json.loads(response[0])
+    return data
+
+serve_op = create_component_from_func(
+    serve, output_component_file='serve_component.yaml')
 
 @dsl.pipeline(
     name="Training pipeline", description=""
@@ -87,6 +116,11 @@ def customer_remarketing(deploy="sklearn-deployment", namespace="kubeflow-user-e
             namespace=namespace,
         ).after(upload_model).set_display_name("Deploy model with Seldon")
     )
+
+    serve_task = (
+       serve_op().after(deploy_task).set_display_name("Infer")
+    )
+
 
 if __name__ == "__main__":
     compiler.Compiler().compile(
